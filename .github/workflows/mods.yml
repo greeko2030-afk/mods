@@ -1,0 +1,73 @@
+name: Auto Fetch Fabric Optimization Mods
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Automatically runs every Sunday at midnight
+  workflow_dispatch: # Allows you to trigger it manually whenever you want
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create temporary downloads directory
+        run: mkdir -p mods_dir
+
+      - name: Download latest mods from Modrinth
+        run: |
+          # Define the target game versions and loader as parameters for Modrinth API
+          # This queries for compatible files targeting Minecraft versions 1.21 up to 1.21.11
+          VERSIONS='["1.21","1.21.1","1.21.2","1.21.3","1.21.4","1.21.11"]'
+          LOADERS='["fabric"]'
+          
+          # List of project slugs based on your repository readme template
+          PROJECTS=("sodium" "lithium" "fastquit" "immediatelyfast" "krypton" "connectivity" "modernfix")
+
+          for project in "${PROJECTS[@]}"; do
+            echo "Fetching download URL for: $project"
+            
+            # Request the version data from Modrinth API filtered by versions and loaders
+            API_URL="https://modrinth.com{project}/version?game_versions=$(echo "$VERSIONS" | jq -sRRr @uri)&loaders=$(echo "$LOADERS" | jq -sRRr @uri)"
+            RESPONSE=$(curl -s "$API_URL")
+            
+            # Extract the download URL and the primary filename of the latest available version
+            DOWNLOAD_URL=$(echo "$RESPONSE" | jq -r '.[0].files[0].url // empty')
+            FILENAME=$(echo "$RESPONSE" | jq -r '.[0].files[0].filename // empty')
+            
+            if [ ! -z "$DOWNLOAD_URL" ] && [ "$DOWNLOAD_URL" != "null" ]; then
+              echo "Downloading $FILENAME from $DOWNLOAD_URL"
+              curl -L -o "mods_dir/$FILENAME" "$DOWNLOAD_URL"
+            else
+              echo "Warning: Could not find a valid download for $project matching the specified versions."
+            fi
+          done
+
+      - name: Generate Release Tag Date
+        id: date
+        run: echo "date=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release and Upload Mod Jars
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "mods-${{ steps.date.outputs.date }}"
+          name: "Fabric Optimization Mods (MC 1.21 - 1.21.11)"
+          body: |
+            Automatically compiled optimization pack for Fabric Loader.
+            Included mods fetched directly from Modrinth:
+            - Sodium
+            - Lithium
+            - FastQuit
+            - ImmediatelyFast
+            - Krypton
+            - Connectivity
+            - ModernFix
+          draft: false
+          prerelease: false
+          files: mods_dir/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
