@@ -1,1 +1,35 @@
 
+minecraft_versions:
+  - "1.21"
+  - "1.21.1"
+  - "1.21.2"
+  - "1.21.3"
+  - "1.21.4"
+  - "1.21.5"
+  - "1.21.6"
+  - "1.21.7"
+  - "1.21.8"
+  - "1.21.9"
+  - "1.21.10"
+  - "1.21.11"
+
+loader: fabric
+release_type: release
+
+mods:
+  - sodium
+  - lithium
+  - ferrite-core
+  - modernfix
+  - immediatelyfast
+  - entityculling
+  - moreculling
+  - dynamic-fps
+  - enhanced-block-entities
+  - krypton
+  - debugify
+  - noisium
+  - c2me-fabric
+  - indium
+  - nvidium
+  - fastquit
